@@ -1,5 +1,13 @@
 /*! Swipebox v1.4.4 | Constantin Saguin csag.co | MIT License | github.com/brutaldesign/swipebox */
-
+/*
+	With fixes from PR
+	https://github.com/brutaldesign/swipebox/pull/324
+	https://github.com/brutaldesign/swipebox/pull/298
+	https://github.com/brutaldesign/swipebox/pull/287
+	and issue
+	https://github.com/brutaldesign/swipebox/issues/243
+*/
+"use strict";
 ;( function ( window, document, $, undefined ) {
 
 	$.swipebox = function( elem, options ) {
@@ -8,11 +16,13 @@
 		var ui,
 			defaults = {
 				useCSS : true,
+				useCssLoadingAnimation: true,
 				useSVG : true,
 				initialIndexOnArray : 0,
-				removeBarsOnMobile : true,
+				removeTopBarOnMobile : false,
+				removeBottomBarOnMobile: true,
 				hideCloseButtonOnMobile : false,
-				hideBarsDelay : 3000,
+				hideBarsDelay : 5000,
 				videoMaxWidth : 1140,
 				vimeoColor : 'cccccc',
 				beforeOpen: null,
@@ -24,7 +34,9 @@
 				loopAtEnd: false,
 				autoplayVideos: false,
 				queryStringData: {},
-				toggleClassOnLoad: ''
+				toggleClassOnLoad: '',
+				closeFadeOutTime: 500,
+				selector: null
 			},
 
 			plugin = this,
@@ -48,6 +60,7 @@
 							<div id="swipebox-arrows">\
 								<a id="swipebox-prev"></a>\
 								<a id="swipebox-next"></a>\
+								<div id="swipebox-description"></div>\
 							</div>\
 						</div>\
 						<a id="swipebox-close"></a>\
@@ -76,7 +89,7 @@
 
 			} else {
 
-				$( document ).on( 'click', selector, function( event ) {
+				$( elem ).on( 'click', plugin.settings.selector, function( event ) {
 
 					// console.log( isTouch );
 
@@ -85,10 +98,12 @@
 						return false;
 					}
 
-					if ( ! $.isArray( elem ) ) {
-						ui.destroy();
-						$elem = $( selector );
-						ui.actions();
+					ui.destroy();
+
+					if ( plugin.settings.selector === null ) {
+						$elem = $( elem );
+					} else {
+						$elem = $( elem ).find( plugin.settings.selector );
 					}
 
 					elements = [];
@@ -106,20 +121,22 @@
 					}
 
 					if ( relVal && relVal !== '' && relVal !== 'nofollow' ) {
-						$elem = $( selector ).filter( '[' + relType + '="' + relVal + '"]' );
-					} else {
-						$elem = $( selector );
+						$elem = $elem.filter( '[' + relType + '="' + relVal + '"]' );
 					}
 
 					$elem.each( function() {
 
 						var title = null,
+							description = null,
 							href = null;
 
 						if ( $( this ).attr( 'title' ) ) {
 							title = $( this ).attr( 'title' );
 						}
 
+						if ( $( this ).data( 'description' ) ) {
+							description = $( this ).data( 'description' );
+						}
 
 						if ( $( this ).attr( 'href' ) ) {
 							href = $( this ).attr( 'href' );
@@ -127,7 +144,8 @@
 
 						elements.push( {
 							href: href,
-							title: title
+							title: title,
+							description: description
 						} );
 					} );
 
@@ -137,6 +155,15 @@
 					ui.target = $( event.target );
 					ui.init( index );
 				} );
+			}
+		};
+
+		// https://github.com/brutaldesign/swipebox/issues/243
+		plugin.refresh = function() {
+			if (!$.isArray(elem)) {
+				ui.destroy();
+				$elem = $(selector);
+				ui.actions();
 			}
 		};
 
@@ -170,15 +197,20 @@
 				$( 'body' ).append( html );
 
 				if ( supportSVG && plugin.settings.useSVG === true ) {
-					bg = $( '#swipebox-close' ).css( 'background-image' );
-					bg = bg.replace( 'png', 'svg' );
-					$( '#swipebox-prev, #swipebox-next, #swipebox-close' ).css( {
-						'background-image' : bg
-					} );
+					$( '#swipebox-overlay' ).addClass("useSvg");
 				}
 
-				if ( isMobile && plugin.settings.removeBarsOnMobile ) {
-					$( '#swipebox-bottom-bar, #swipebox-top-bar' ).remove();
+				if ( this.doCssLoadingAnimation() ) {
+					$( '#swipebox-overlay' ).addClass("useCssLoadingAnimation");
+				}
+
+				if ( isMobile ){
+					if( plugin.settings.removeBottomBarOnMobile ) {
+						$( '#swipebox-bottom-bar' ).remove();
+					}
+					if( plugin.settings.removeTopBarOnMobile ) {
+						$( '#swipebox-top-bar' ).remove();
+					}
 				}
 
 				$.each( elements,  function() {
@@ -271,6 +303,16 @@
 					return true;
 				}
 			},
+
+			/**
+			 * Check if the CSS loading animation is allowed (options + devicesupport)
+			 */
+			doCssLoadingAnimation : function () {
+				if ( plugin.settings.useCssLoadingAnimation && this.supportTransition() ) {
+					return true;
+				}
+			},
+			
 
 			/**
 			 * Touch navigation
@@ -584,7 +626,9 @@
 					} );
 				}
 
-				$( '#swipebox-close' ).bind( action, function() {
+				$( '#swipebox-close' ).bind( action, function( event ) {
+					event.preventDefault();
+					event.stopPropagation();
 					$this.closeSlide();
 				} );
 			},
@@ -684,6 +728,14 @@
 
 				if ( ! $this.isVideo( src ) ) {
 					slide.addClass( 'slide-loading' );
+					if( $this.doCssLoadingAnimation() ){
+						const loadingHtml = $('\
+						<div class="loading-animation-wrapper">\
+							<span class="loading"></span>\
+						</div>');
+						slide.append(loadingHtml);
+					}
+					
 					$this.loadMedia( src, function() {
 						slide.removeClass( 'slide-loading' );
 						slide.html( this );
@@ -706,20 +758,26 @@
 			 * Set link title attribute as caption
 			 */
 			setTitle : function ( index ) {
-				var title = null;
+				var title = null,
+					description = null;
 
 				$( '#swipebox-title' ).empty();
 
 				if ( elements[ index ] !== undefined ) {
 					title = elements[ index ].title;
+					description = elements[ index ].description;
 				}
 
+				
 				if ( title ) {
 					$( '#swipebox-top-bar' ).show();
 					$( '#swipebox-title' ).append( title );
 				} else {
 					$( '#swipebox-top-bar' ).hide();
 				}
+
+				$( '#swipebox-description' ).empty();
+				$( '#swipebox-description' ).append( description );
 			},
 
 			/**
@@ -909,10 +967,17 @@
 			 * Close
 			 */
 			closeSlide : function () {
+				if( plugin.settings.closeFadeOutTime > 0){
+					$('#swipebox-overlay').fadeOut(  plugin.settings.closeFadeOutTime, function() { // fade out overlay
+						this.destroy(); 
+					}.bind(this));
+				}
 				$( 'html' ).removeClass( 'swipebox-html' );
 				$( 'html' ).removeClass( 'swipebox-touch' );
 				$( window ).trigger( 'resize' );
-				this.destroy();
+				if(plugin.settings.closeFadeOutTime <= 0){
+					this.destroy();
+				}
 			},
 
 			/**
