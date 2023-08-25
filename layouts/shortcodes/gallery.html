@@ -150,7 +150,7 @@ Ordinal: {{ .Ordinal}}
 						{{ end }}
 
 						{{ if $showExif }}
-							data-description="{{ .Model }} + {{ .LensModel }}<br/>{{ .FocalLength }}mm f/{{ .FNumber }} {{ .ExposureTime }}sec ISO {{ .ISOSpeedRatings }}"
+							data-description="{{ .Model }} {{ .LensModel }} – {{ .Copyright }}<br/>{{ .UserComment }}"
 						{{ end }}
 
 						{{ if not (eq $filterOptions "[]")  }}
