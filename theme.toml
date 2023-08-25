@@ -1,0 +1,16 @@
+name = "Hugo Gallery Shortcode"
+license = "MIT"
+licenselink = "https://github.com/Beryesa/hugo-gallery/blob/main/LICENSE.md"
+description = "A gallery shortcode for hugo"
+homepage = "https://github.com/Beryesa/hugo-gallery"
+demosite = "https://beryesa.com/posts"
+tags = ["blog", "minimal", "gallery"]
+#features = ["some", "awesome", "features"]
+
+[author]
+    name = "Beryesa"
+    homepage = "https://beryesa.com/"
+[original]
+    author = "mfg92"
+    homepage = "https://matze.rocks/images"
+    repo = "https://github.com/mfg92/hugo-shortcode-gallery"
