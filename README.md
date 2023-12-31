@@ -15,30 +15,27 @@ You can see this shortcode-gallery in action on [my website](https://beryesa.com
 
 ## Installation
 
-Add this repo as a submodule
+Initialize the hugo module system:
 
 ```
-git submodule add --depth=1 https://github.com/Beryesa/hugo-gallery.git themes/hugo-gallery
-git submodule update --init --recursive
+hugo mod init github.com/<your_user>/<your_project>
 ```
 
 Next edit your project's 
-*config.yml* and add this theme component to your themes:
+*config.yml* and import this module:
 
 ```
-theme:
-  - your-main-theme
-  - hugo-gallery
+module:
+  imports:
+  - path: github.com/Beryesa/hugo-gallery
 ```
 
 To update
 ```
-git submodule update --remote --rebase
+hugo mod get -u github.com/Beryesa/hugo-gallery
 ```
 
-To read about hugo's theme components and how to use them have a look at 
-https://gohugo.io/hugo-modules/theme-components/.
-
+Read more about hugo modules [here](https://gohugo.io/hugo-modules/use-modules/)
 
 ## Usage Example
 
